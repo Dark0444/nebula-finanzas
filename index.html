@@ -506,6 +506,14 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
         <svg id="spark" viewBox="0 0 300 52" preserveAspectRatio="none" aria-hidden="true"></svg>
       </div>
 
+      <div class="card tight hide" id="proyCard" style="display:flex;gap:11px;align-items:flex-start;margin-top:-4px">
+        <div style="font-size:19px">🔮</div>
+        <div style="flex:1;min-width:0">
+          <b style="font-size:13px">Proyección del mes<button class="hint" id="proyHint" data-hint-title="Proyección de cierre de mes" data-hint="Toma tu gasto promedio por día transcurrido y lo multiplica por los días que tiene el mes. Es un estimado, no una promesa: si un día gastas mucho más o mucho menos de lo normal, el número se mueve.">?</button></b>
+          <div class="muted" id="proyTxt" style="margin-top:2px;font-size:12px"></div>
+        </div>
+      </div>
+
       <div class="sec-title"><h2>Mis cuentas</h2><button id="btnTransfer">Transferir</button></div>
       <div class="banks" id="banksRow"></div>
 
@@ -538,6 +546,21 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
             <div class="muted" id="hsMsg">Registra tu primer movimiento para calcular tu salud del mes.</div>
             <div class="streak" id="streak">🔥 0 meses ahorrando</div>
           </div>
+        </div>
+      </div>
+
+      <div class="sec-title"><h2>Tendencia de patrimonio<button class="hint" id="histPatHint" data-hint-title="Tendencia de patrimonio" data-hint="El patrimonio de cada mes recalculado con el historial real de movimientos hasta el último día de ese mes (el mes en curso se corta en el día de hoy).">?</button></h2></div>
+      <div class="card" id="histPatCard">
+        <svg id="histPatSvg" viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:90px;display:block" aria-hidden="true"></svg>
+        <div id="histPatLegend" style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text-2)"></div>
+      </div>
+
+      <div class="sec-title"><h2>Ingresos vs. gastos<button class="hint" id="ingVsGasHint" data-hint-title="Ingresos vs. gastos" data-hint="Compara lo que entró contra lo que salió de tus cuentas (sin contar tarjeta de crédito) en cada uno de los últimos meses.">?</button></h2></div>
+      <div class="card" id="ingVsGasCard">
+        <svg id="ingVsGasSvg" viewBox="0 0 300 120" preserveAspectRatio="none" style="width:100%;height:120px;display:block" aria-hidden="true"></svg>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-2)">
+          <span><i class="swatch-dot" style="background:var(--teal)"></i>Ingresos</span>
+          <span><i class="swatch-dot" style="background:var(--coral)"></i>Salidas</span>
         </div>
       </div>
 
@@ -575,6 +598,11 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
 
       <div class="sec-title"><h2 id="histTitle">Movimientos</h2><span class="muted" id="histCount"></span></div>
       <div id="txList"></div>
+
+      <div class="sec-title"><h2>Mapa de gasto del mes<button class="hint" id="heatHint" data-hint-title="Mapa de gasto del mes" data-hint="Cada casilla es un día de este mes. Mientras más intenso el color, más gastaste ese día (sin contar tarjeta de crédito). Toca un día para ver el detalle.">?</button></h2></div>
+      <div class="card tight" id="heatCard">
+        <div id="heatGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px"></div>
+      </div>
 
       <div class="sec-title"><h2>Comparación de gastos<button class="hint" id="compHint" data-hint-title="Comparación de gastos" data-hint="Compara lo gastado en un periodo contra el periodo anterior del mismo tamaño.">?</button></h2></div>
       <div class="seg" id="compSeg">
@@ -639,16 +667,38 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
     <button data-act="ahorro"><em>🐖</em>Abono a plan</button>
     <button data-act="transfer"><em>⇄</em>Transferencia</button>
     <button data-act="captura"><em>📲</em>Pegar notificación</button>
+    <button data-act="dividir"><em>➗</em>Dividir gasto</button>
     <button data-act="banco"><em>🏦</em>Nueva cuenta</button>
     <button data-act="oblig"><em>📄</em>Obligación fija</button>
   </div>
 </div>
 
+<!-- Gasto dividido -->
+<div class="sheet" id="sheetSplit">
+  <div class="grab"></div>
+  <h3>Dividir un gasto</h3>
+  <p class="sub">Un solo pago que quieres repartir en varias categorías.</p>
+  <form id="splitForm">
+    <label class="f"><span>Monto total (Q)</span><input class="inp num" id="splitTotal" type="number" step="0.01" min="0" inputmode="decimal" required></label>
+    <label class="f"><span>Descripción</span><input class="inp" id="splitDesc" type="text" placeholder="Ej. Súper La Torre"></label>
+    <label class="f"><span>Cuenta de origen</span><select class="inp" id="splitBanco"></select></label>
+    <label class="f"><span>Fecha</span><input class="inp" id="splitFecha" type="date" required></label>
+    <div class="q-label">Reparto por categoría</div>
+    <div id="splitFilas"></div>
+    <button class="btn ghost" type="button" id="splitAgregar" style="margin-top:4px">+ Agregar categoría</button>
+    <div class="muted" id="splitResumen" style="margin:12px 0"></div>
+    <button class="btn" type="submit">Guardar gasto dividido</button>
+  </form>
+</div>
+
 <!-- Registro rápido -->
 <div class="sheet" id="sheetQuick">
   <div class="grab"></div>
-  <h3>Gasto rápido</h3>
-  <p class="sub" id="quickSub">Monto, cuenta y categoría. Nada más.</p>
+  <div style="display:flex;align-items:center;gap:8px">
+    <h3 style="flex:1;margin:0">Gasto rápido</h3>
+    <button type="button" class="icon-btn" id="btnQuickVoz" aria-label="Dictar gasto" style="width:38px;height:38px;font-size:16px">🎤</button>
+  </div>
+  <p class="sub" id="quickSub">Monto, cuenta y categoría. Nada más. O toca 🎤 y dilo en voz alta.</p>
   <div class="q-amount"><span class="cur">Q</span><span class="n num dim" id="qAmount">0</span></div>
   <div class="q-label">Cuenta</div>
   <div class="chips" id="qBancoChips"></div>
@@ -672,6 +722,12 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
     <label class="f hide" id="wrapTarjeta"><span>Tarjeta a abonar</span><select class="inp" id="txTarjeta"></select></label>
     <label class="f hide" id="wrapMeta"><span>Plan de ahorro</span><select class="inp" id="txMeta"></select></label>
     <label class="f"><span>Fecha</span><input class="inp" id="txFecha" type="date" required></label>
+    <label class="f"><span>Foto del recibo (opcional)</span>
+      <input class="inp" id="txFoto" type="file" accept="image/*" capture="environment"></label>
+    <div id="txFotoPreview" class="hide" style="margin:-4px 0 12px">
+      <img id="txFotoImg" alt="Foto del recibo" style="max-width:100%;border-radius:14px;border:1px solid var(--stroke);display:block">
+      <button class="btn ghost" type="button" id="txFotoQuitar" style="margin-top:8px">Quitar foto</button>
+    </div>
     <button class="btn" type="submit">Guardar movimiento</button>
     <button class="btn danger hide" type="button" id="txDelete" style="margin-top:9px">Eliminar movimiento</button>
   </form>
@@ -790,16 +846,24 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
 <!-- Meta -->
 <div class="sheet" id="sheetMeta">
   <div class="grab"></div>
-  <h3>Nuevo plan de ahorro</h3>
+  <h3 id="metaFormTitle">Nuevo plan de ahorro</h3>
   <p class="sub">Define la meta y cuánto quieres apartar cada mes.</p>
   <form id="metaForm">
+    <input type="hidden" id="metaId">
     <label class="f"><span>Tipo de plan</span><div class="presets" id="metaPresets"></div></label>
     <label class="f"><span>Nombre</span><input class="inp" id="metaNombre" type="text" required placeholder="Ej. Fondo de emergencia"></label>
     <div class="grid2">
       <label class="f"><span>Objetivo (Q)</span><input class="inp num" id="metaObjetivo" type="number" step="0.01" required inputmode="decimal"></label>
       <label class="f"><span>Aporte mensual (Q)</span><input class="inp num" id="metaAporte" type="number" step="0.01" value="0" inputmode="decimal"></label>
     </div>
-    <button class="btn" type="submit">Crear plan</button>
+    <label class="f" style="display:flex;align-items:center;gap:10px;margin-top:2px">
+      <input type="checkbox" id="metaRedondeo" style="width:20px;height:20px;accent-color:var(--violet)">
+      <span style="margin:0">Redondear mis gastos y abonar la diferencia aquí</span>
+    </label>
+    <div class="muted" style="font-size:11px;margin:-6px 0 12px">Solo un plan puede tener el redondeo activo a la vez.</div>
+    <label class="f"><span>Apartar automáticamente este % de cada ingreso (0 = apagado)</span>
+      <input class="inp num" id="metaAparte" type="number" step="1" min="0" max="100" value="0" inputmode="decimal"></label>
+    <button class="btn" type="submit" id="metaSubmit">Crear plan</button>
   </form>
 </div>
 
@@ -933,7 +997,59 @@ svg .hit:active{fill:rgba(255,255,255,.06)}
   <button class="btn ghost" type="button" id="btnExport">Descargar respaldo en Excel ahora</button>
   <button class="btn ghost" type="button" id="btnImport" style="margin-top:9px">Restaurar desde Excel</button>
   <input type="file" id="fileImport" accept=".xlsx,.xls" class="hide">
-  <button class="btn danger" type="button" id="btnWipe" style="margin-top:9px">Borrar todos los datos</button>
+
+  <div class="sec-title" style="margin:22px 2px 8px"><h2>Seguridad<button class="hint" id="pinHint" data-hint-title="Bloqueo con PIN" data-hint="Pide un PIN cada vez que abres la app, para que si alguien más toma tu teléfono no vea tus finanzas. El PIN se guarda solo en este dispositivo (como un código, no como texto plano) y no hay forma de recuperarlo si lo olvidas: tendrías que borrar todos los datos de la app.">?</button></h2></div>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+    <label style="flex:1;margin:0;font-size:13.5px;font-weight:700">Bloqueo con PIN al abrir la app</label>
+    <label class="switch" style="position:relative;display:inline-block;width:46px;height:26px;flex:none">
+      <input type="checkbox" id="pinToggle" style="opacity:0;width:0;height:0">
+      <span id="pinToggleTrack" style="position:absolute;inset:0;background:var(--surface-2);border:1px solid var(--stroke);border-radius:999px;transition:.2s"></span>
+      <span id="pinToggleKnob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:var(--text);border-radius:50%;transition:.2s"></span>
+    </label>
+  </div>
+  <div class="muted" id="pinEstado" style="font-size:11.5px;margin-bottom:14px"></div>
+  <button class="btn ghost hide" type="button" id="btnPinCambiar">Cambiar PIN</button>
+
+  <button class="btn danger" type="button" id="btnWipe" style="margin-top:14px">Borrar todos los datos</button>
+</div>
+
+<!-- PIN: crear / cambiar -->
+<div class="sheet" id="sheetPinSet">
+  <div class="grab"></div>
+  <h3 id="pinSetTitle">Crea tu PIN</h3>
+  <p class="sub">4 a 6 dígitos. Se pedirá cada vez que abras la app.</p>
+  <form id="pinSetForm">
+    <label class="f"><span>PIN nuevo</span><input class="inp num" id="pinNuevo" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6" required autocomplete="off"></label>
+    <label class="f"><span>Confirma el PIN</span><input class="inp num" id="pinConfirma" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6" required autocomplete="off"></label>
+    <button class="btn" type="submit">Guardar PIN</button>
+  </form>
+</div>
+
+<!-- PIN: confirmar para desactivar o cambiar -->
+<div class="sheet" id="sheetPinConfirm">
+  <div class="grab"></div>
+  <h3>Confirma tu PIN</h3>
+  <p class="sub" id="pinConfirmMsg">Escribe tu PIN actual para continuar.</p>
+  <form id="pinConfirmForm">
+    <label class="f"><span>PIN</span><input class="inp num" id="pinConfirmInput" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6" required autocomplete="off"></label>
+    <div class="muted" id="pinConfirmError" style="min-height:16px;color:var(--coral);font-size:12px"></div>
+    <button class="btn" type="submit">Confirmar</button>
+  </form>
+</div>
+
+<!-- PIN: pantalla de bloqueo -->
+<div id="lockScreen" class="hide" style="position:fixed;inset:0;z-index:200;background:var(--ink);display:grid;place-items:center;padding:24px">
+  <div style="width:100%;max-width:340px;text-align:center">
+    <div style="font-size:38px;margin-bottom:10px">🔒</div>
+    <h3 style="margin:0 0 4px">Nébula bloqueada</h3>
+    <p class="muted" style="margin-bottom:18px">Escribe tu PIN para entrar</p>
+    <form id="lockForm">
+      <input class="inp num" id="lockPin" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="6"
+        style="text-align:center;letter-spacing:6px;font-size:22px" autocomplete="off" autofocus>
+      <div class="muted" id="lockError" style="min-height:18px;margin:8px 0;color:var(--coral);font-size:12.5px"></div>
+      <button class="btn" type="submit" style="margin-top:6px">Desbloquear</button>
+    </form>
+  </div>
 </div>
 
 <!-- Bienvenida -->
@@ -1010,7 +1126,8 @@ function dbVacia(){
   return { transacciones:[], bancos:[], categorias:[], obligaciones:[], metas:[], reportes:{},
            config:{estrategia:'503020', tema:'dark', reparto:null, iniciado:false,
                    respaldo:{intervalo:15, ultimo:null, total:0},
-                   notifPrefs:{presupuesto:true, tarjeta:true, obligaciones:true, metas:true, comparativas:true, reportes:true}},
+                   notifPrefs:{presupuesto:true, tarjeta:true, obligaciones:true, metas:true, comparativas:true, reportes:true},
+                   pin:{activo:false, hash:null}},
            alertas:[], descartadas:[] };
 }
 /* Migra datos guardados con versiones anteriores de la app. Hoy solo hace una cosa:
@@ -1069,15 +1186,41 @@ const ACCIONES={
   addBanco:localAddBanco, editBanco:localEditBanco, delBanco:localDeleteBanco, transferBanco:localAddTransferBanco,
   addCat:localAddCategoria, editCat:localEditCategoria, delCat:localDeleteCategoria,
   addOb:localAddObligacion, editOb:localEditObligacion, delOb:localDeleteObligacion, pagarOb:localPagarObligacion,
-  addMeta:localAddMeta, abonarMeta:localAbonarMeta, retirarAhorro:localRetirarAhorro, delMeta:localDeleteMeta,
+  addMeta:localAddMeta, editMeta:localEditMeta, abonarMeta:localAbonarMeta, retirarAhorro:localRetirarAhorro, delMeta:localDeleteMeta,
   setLimiteTC:localSetLimiteTC
 };
 function postAction(tipo,payload){
   const fn=ACCIONES[tipo];
   if(!fn){ console.warn('Acción desconocida:',tipo); return null; }
   const r=fn(payload);
+  if(r && r.id && !r.auto && (tipo==='addTx'||tipo==='pagarOb')) aplicarAutomatizacionesMeta(r);
   saveDB(); getAllDataLocal(); renderAll(); runAlertEngine();
   return r;
+}
+/* Automatizaciones de planes de ahorro: redondeo de gastos y aparte automático de ingresos.
+   Se disparan solo al CREAR un movimiento nuevo (nunca al editar), y las transacciones que
+   generan van marcadas con auto:true para que no se encadenen entre sí. */
+function aplicarAutomatizacionesMeta(t){
+  if(!t || t.auto) return;
+  if(t.tipo==='gasto' && !t.esTC && t.bancoId){
+    const metaR=DB.metas.find(m=>m.redondeo);
+    if(metaR){
+      const monto=num(t.monto), objetivo=Math.ceil(monto), diff=Math.round((objetivo-monto)*100)/100;
+      if(diff>0.004 && disponibleCuenta(t.bancoId)>=diff-0.01){
+        localAddTransaction({tipo:'ahorro',monto:diff,fecha:t.fecha,bancoId:t.bancoId,metaId:metaR.id,
+          descripcion:'Redondeo automático · '+metaR.nombre,categoria:'Ahorro',auto:true});
+      }
+    }
+  }
+  if(t.tipo==='ingreso' && t.bancoId){
+    DB.metas.filter(m=>num(m.aparteIngresoPct)>0).forEach(m=>{
+      const monto2=Math.round(num(t.monto)*num(m.aparteIngresoPct)/100*100)/100;
+      if(monto2>0.004){
+        localAddTransaction({tipo:'ahorro',monto:monto2,fecha:t.fecha,bancoId:t.bancoId,metaId:m.id,
+          descripcion:'Aparte automático ('+m.aparteIngresoPct+'%) · '+m.nombre,categoria:'Ahorro',auto:true});
+      }
+    });
+  }
 }
 
 /* ---------- 2. Motor de cálculo ---------- */
@@ -1260,7 +1403,13 @@ function localPagarObligacion(p){
   });
 }
 
-function localAddMeta(m){ const n=Object.assign({id:uid(),actual:0,icono:'🎯',aporte:0},m); DB.metas.push(n); return n; }
+function localAddMeta(m){ const n=Object.assign({id:uid(),actual:0,icono:'🎯',aporte:0,redondeo:false,aparteIngresoPct:0},m); DB.metas.push(n); return n; }
+function localEditMeta(m){
+  const i=DB.metas.findIndex(x=>x.id===m.id); if(i<0) return null;
+  if(m.redondeo) DB.metas.forEach(x=>{ if(x.id!==m.id) x.redondeo=false; }); // solo un plan recibe el redondeo
+  DB.metas[i]=Object.assign({},DB.metas[i],m);
+  return DB.metas[i];
+}
 function localAbonarMeta(p){
   return localAddTransaction({tipo:'ahorro',monto:p.monto,fecha:p.fecha,bancoId:p.bancoId||null,
     metaId:p.id,descripcion:'Abono · '+(DB.metas.find(m=>m.id===p.id)||{}).nombre,categoria:'Ahorro'});
@@ -1282,6 +1431,7 @@ function openSheet(id){
 }
 function closeSheet(id){
   if(id==='sheetConfirm'&&_confirmResolve){ const r=_confirmResolve; _confirmResolve=null; r(false); }
+  if(id==='sheetPinConfirm'&&_pinConfirmResolve){ const r=_pinConfirmResolve; _pinConfirmResolve=null; r(false); }
   const s=$(id); if(s) s.classList.remove('on');
   const i=pila.indexOf(id); if(i>-1) pila.splice(i,1);
   if(!pila.length){ $('scrim').classList.remove('on'); document.body.style.overflow=''; }
@@ -1457,9 +1607,9 @@ function guardarTransferBanco(e){
 function poblarSelectsBanco(){
   const todos=DB.bancos, liq=DB.bancos.filter(b=>b.tipo!=='credito'), tarjetas=DB.bancos.filter(b=>b.tipo==='credito');
   const opts=(arr,vacio)=> (vacio?`<option value="">${vacio}</option>`:'')+arr.map(b=>`<option value="${b.id}">${esc(b.nombre)}</option>`).join('');
-  ['txBanco','trFrom','trTo','obPagoBanco','movBanco','closeMetaBanco'].forEach(id=>{
+  ['txBanco','trFrom','trTo','obPagoBanco','movBanco','closeMetaBanco','splitBanco'].forEach(id=>{
     const el=$(id); if(!el) return; const prev=el.value;
-    el.innerHTML=opts((id==='txBanco'||id==='obPagoBanco')?todos:liq,'Elige una cuenta');
+    el.innerHTML=opts((id==='txBanco'||id==='obPagoBanco'||id==='splitBanco')?todos:liq,'Elige una cuenta');
     if(prev) el.value=prev;
   });
   $('txTarjeta').innerHTML=opts(tarjetas,'Sin tarjeta');
@@ -1517,6 +1667,91 @@ function renderDashboard(){
     'Tienes '+DB.metas.length+' plan(es) con '+Engine.format(Engine.enPlanes())+' acumulado. Si eliminas un plan, Nébula te pregunta a qué cuenta devolver el dinero.');
 
   renderSpark(); updateChart(); renderQuickChips(); renderObligacionesEstado(mesSel); renderTCCard();
+  renderPatrimonioHist(); renderIngresosGastos(); renderProyeccionMes();
+}
+/* ---------- Patrimonio recalculado a una fecha pasada (para la tendencia histórica) ---------- */
+function patrimonioEnFecha(fechaLimite){
+  let liquido=0;
+  DB.bancos.filter(b=>b.tipo!=='credito').forEach(b=>{
+    let v=num(b.saldoInicial);
+    DB.transacciones.forEach(t=>{
+      if(t.fecha>fechaLimite) return;
+      const m=num(t.monto);
+      if(t.bancoId===b.id){ if(t.tipo==='ingreso'||t.tipo==='retiro') v+=m; else v-=m; }
+      if(t.tipo==='transfer' && t.bancoDestinoId===b.id) v+=m;
+    });
+    liquido+=v;
+  });
+  let planes=0;
+  DB.transacciones.forEach(t=>{
+    if(t.fecha>fechaLimite || !t.metaId) return;
+    if(t.tipo==='ahorro') planes+=num(t.monto);
+    else if(t.tipo==='retiro') planes-=num(t.monto);
+  });
+  return Math.max(0, liquido+Math.max(0,planes));
+}
+function patrimonioHistorico(n){
+  const out=[], now=new Date();
+  for(let i=n-1;i>=0;i--){
+    const dd=new Date(now.getFullYear(), now.getMonth()-i+1, 0); // último día de ese mes
+    const key=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0');
+    const limite = i===0 ? hoy() : dd.toISOString().slice(0,10);
+    out.push({m:key, valor:patrimonioEnFecha(limite)});
+  }
+  return out;
+}
+function renderPatrimonioHist(){
+  const svg=$('histPatSvg'); if(!svg) return;
+  const datos=patrimonioHistorico(6);
+  const vals=datos.map(d=>d.valor);
+  if(!vals.some(v=>v>0)){
+    svg.innerHTML=''; $('histPatLegend').innerHTML='<span style="width:100%;text-align:center">Aún no hay suficiente historial para mostrar una tendencia.</span>';
+    return;
+  }
+  const mn=Math.min(...vals,0), mx=Math.max(...vals,1), rg=(mx-mn)||1;
+  const X=i=>(i/(datos.length-1||1))*300, Y=v=>82-((v-mn)/rg)*70;
+  const line=vals.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  const subiendo=vals[vals.length-1]>=vals[0];
+  const cl=subiendo?'#2DD4BF':'#FF6B81';
+  const pts=vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3.4" fill="${cl}"/>`).join('');
+  svg.innerHTML=`<path d="${line} L300,82 L0,82 Z" fill="${cl}" opacity=".13"/>
+    <path d="${line}" fill="none" stroke="${cl}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>${pts}`;
+  $('histPatLegend').innerHTML=datos.map(d=>`<span>${nombreMes(d.m).slice(0,3)}</span>`).join('');
+}
+/* ---------- Ingresos vs. gastos de los últimos meses ---------- */
+function renderIngresosGastos(){
+  const svg=$('ingVsGasSvg'); if(!svg) return;
+  const n=6, now=new Date(), meses=[];
+  for(let i=n-1;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); meses.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  const datos=meses.map(m=>{ const t=Engine.recalculate(m); return {m, ing:t.ingresos, gas:t.gastos+t.tarjeta}; });
+  const mx=Math.max(1,...datos.map(d=>Math.max(d.ing,d.gas)));
+  const grupoW=300/n, barW=grupoW*0.34, base=104;
+  let bars='', labels='';
+  datos.forEach((d,i)=>{
+    const cx=i*grupoW+grupoW/2;
+    const hI=(d.ing/mx)*base, hG=(d.gas/mx)*base;
+    bars+=`<rect class="barA" x="${(cx-barW-2).toFixed(1)}" y="${(base-hI+8).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(1,hI).toFixed(1)}" rx="3" fill="var(--teal)"/>`;
+    bars+=`<rect class="barA" x="${(cx+2).toFixed(1)}" y="${(base-hG+8).toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(1,hG).toFixed(1)}" rx="3" fill="var(--coral)"/>`;
+    labels+=`<text x="${cx.toFixed(1)}" y="118" font-size="8.5" fill="var(--text-2)" text-anchor="middle">${nombreMes(d.m).slice(0,3)}</text>`;
+  });
+  svg.innerHTML=bars+labels;
+}
+/* ---------- Proyección de cierre del mes en curso ---------- */
+function renderProyeccionMes(){
+  const card=$('proyCard'); if(!card) return;
+  if(mesSel!==mesActualSistema()){ card.classList.add('hide'); return; }
+  const t=Engine.recalculate(mesSel);
+  const salidas=t.gastos+t.tarjeta;
+  const diaHoy=new Date().getDate(), dias=diasEnMes(mesSel);
+  if(salidas<=0 || diaHoy<2){ card.classList.add('hide'); return; }
+  const ritmoDiario=salidas/diaHoy;
+  const proyectadoSalidas=ritmoDiario*dias;
+  const proyectadoNeto=t.ingresos-proyectadoSalidas;
+  card.classList.remove('hide');
+  $('proyTxt').innerHTML='Gastas '+Engine.format(ritmoDiario)+'/día en promedio. A ese ritmo, '+nombreMes(mesSel)+
+    ' cierra con salidas de unos '+Engine.format(proyectadoSalidas)+' y un neto '+
+    (proyectadoNeto>=0?'a favor de ':'en contra de ')+
+    '<b style="color:'+(proyectadoNeto>=0?'var(--teal)':'var(--coral)')+'">'+Engine.format(Math.abs(proyectadoNeto))+'</b>.';
 }
 function renderSpark(){
   const svg=$('spark'), dias=diasEnMes(mesSel), pts=[];
@@ -1616,7 +1851,7 @@ function lineaTx(t){
   const est=ESTILO_TX[t.tipo]||ESTILO_TX.gasto, ic=est[0], col=est[1];
   return `<div class="tx" data-tx="${t.id}" style="align-items:flex-start">
     <div class="ic" style="background:${col}22;color:${col}">${ic}</div>
-    <div class="bd"><b>${esc(t.descripcion||t.categoria||'Movimiento')}</b>
+    <div class="bd"><b>${esc(t.descripcion||t.categoria||'Movimiento')}${t.foto?' 📷':''}</b>
       <span>💳 ${esc(medioDePago(t))}</span>
       <span>📅 ${fechaLarga(t.fecha)} · 🏷️ ${esc(t.categoria||'Sin categoría')}</span></div>
     <div class="am"><b class="num" style="color:${col}">${Engine.format(t.monto)}</b></div>
@@ -1985,6 +2220,27 @@ const TITULOS={ingreso:['Nuevo ingreso','Dinero que entra a una de tus cuentas.'
   gasto:['Nuevo gasto','Sale de la cuenta que elijas.'],
   tarjeta:['Pago de tarjeta','Reduce la deuda de la tarjeta seleccionada.'],
   ahorro:['Abono a plan','Aparta dinero hacia un plan de ahorro.']};
+let txFotoData=null;
+function mostrarFotoPreview(){
+  const w=$('txFotoPreview');
+  if(txFotoData){ $('txFotoImg').src=txFotoData; w.classList.remove('hide'); }
+  else{ w.classList.add('hide'); $('txFotoImg').src=''; }
+}
+function leerFotoComprimida(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const maxW=640, scale=Math.min(1,maxW/img.width||1);
+      const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      try{ resolve(cv.toDataURL('image/jpeg',0.6)); }catch(e){ reject(e); }
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('no se pudo leer la imagen')); };
+    img.src=url;
+  });
+}
 function openModal(tipo,pre){
   const [t,s]=TITULOS[tipo]||TITULOS.gasto;
   $('txTitle').textContent=t; $('txSub').textContent=s;
@@ -1993,6 +2249,7 @@ function openModal(tipo,pre){
   $('txDesc').value=pre&&pre.descripcion?pre.descripcion:'';
   $('txFecha').value=(pre&&pre.fecha)||hoy();
   $('txDelete').classList.add('hide');
+  $('txFoto').value=''; txFotoData=null; mostrarFotoPreview();
   poblarSelects(tipo);
   if(pre&&pre.bancoId) $('txBanco').value=pre.bancoId;
   if(pre&&pre.categoria) $('txCat').value=pre.categoria;
@@ -2023,6 +2280,7 @@ function editarTx(id){
   $('txFecha').value=t.fecha; $('txCat').value=t.categoria||'';
   $('txBanco').value=t.bancoId||''; $('txTarjeta').value=t.tarjetaId||''; $('txMeta').value=t.metaId||'';
   $('txDelete').classList.remove('hide');
+  $('txFoto').value=''; txFotoData=t.foto||null; mostrarFotoPreview();
   openSheet('sheetTx');
 }
 function guardarTransaccion(e){
@@ -2030,7 +2288,7 @@ function guardarTransaccion(e){
   const id=$('txId').value, tipo=$('txTipo').value, monto=parseMonto($('txMonto').value);
   if(monto<=0){ showToast('El monto debe ser mayor a cero'); return; }
   const p={tipo,monto,descripcion:$('txDesc').value.trim(),fecha:$('txFecha').value,
-    bancoId:$('txBanco').value||null,
+    bancoId:$('txBanco').value||null, foto:txFotoData||null,
     categoria: tipo==='gasto' ? ($('txCat').value||'Sin categoría')
              : tipo==='ingreso'?'Ingreso': tipo==='tarjeta'?'Tarjeta':'Ahorro',
     tarjetaId: tipo==='tarjeta' ? ($('txTarjeta').value||null) : null,
@@ -2113,6 +2371,43 @@ function guardarQuickGasto(){
     descripcion:qCat||'Gasto',fecha:hoy()});
   closeSheet('sheetQuick'); showToast('Gasto de '+Engine.format(monto)+' registrado'); hap(18);
 }
+/* ---------- Dictado por voz ---------- */
+function reconocedorVoz(){
+  const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!Ctor) return null;
+  const r=new Ctor();
+  r.lang='es-GT'; r.interimResults=false; r.maxAlternatives=3;
+  return r;
+}
+function interpretarDictado(texto){
+  const t=(texto||'').toLowerCase();
+  // Monto: primer número con o sin decimales que aparece en el texto.
+  const mm=t.match(/(\d+(?:[.,]\d{1,2})?)/);
+  const monto = mm ? parseMonto(mm[1]) : 0;
+  // Categoría: la primera categoría existente cuyo nombre aparezca mencionado.
+  const cat = DB.categorias.find(c=>t.includes(c.nombre.toLowerCase()));
+  // Cuenta: la primera cuenta existente cuyo nombre aparezca mencionado.
+  const banco = DB.bancos.find(b=>t.includes(b.nombre.toLowerCase()));
+  // Descripción: el texto tal cual, para que quede algo de contexto guardado.
+  return {monto, cat:cat?cat.nombre:null, bancoId:banco?banco.id:null, texto};
+}
+function dictarGastoRapido(){
+  const rec=reconocedorVoz();
+  if(!rec){ showToast('Tu navegador no permite dictado por voz aquí'); return; }
+  const btn=$('btnQuickVoz');
+  btn.textContent='🔴'; btn.disabled=true;
+  rec.onresult=ev=>{
+    const texto=ev.results[0][0].transcript;
+    const r=interpretarDictado(texto);
+    if(r.monto>0){ qMonto=String(r.monto); renderQuickAmount(); }
+    if(r.cat){ qCat=r.cat; renderQCatChips(); }
+    if(r.bancoId){ qBanco=r.bancoId; renderQBancoChips(); }
+    showToast(r.monto>0 ? 'Escuché: "'+texto+'" · revisa y guarda' : 'No entendí el monto, escríbelo manualmente');
+  };
+  rec.onerror=()=>{ showToast('No se pudo escuchar. Intenta de nuevo.'); };
+  rec.onend=()=>{ btn.textContent='🎤'; btn.disabled=false; };
+  try{ rec.start(); }catch(e){ btn.textContent='🎤'; btn.disabled=false; showToast('No se pudo iniciar el micrófono'); }
+}
 
 /* ---------- 12. Captura de notificaciones ---------- */
 function openCaptureModal(){ $('capText').value=''; $('capResult').innerHTML=''; openSheet('sheetCapture'); }
@@ -2154,6 +2449,54 @@ function confirmarCapturaComoGasto(d){
   setTimeout(()=>openModal('gasto',{monto:d.monto,descripcion:d.comercio||'Compra',fecha:d.fecha,bancoId:d.bancoId}),260);
 }
 
+/* ---------- Gasto dividido entre varias categorías ---------- */
+let splitFilas=[{categoria:'',monto:0},{categoria:'',monto:0}];
+function abrirSplitModal(){
+  if(!DB.bancos.length){ showToast('Crea primero una cuenta'); openBancoModal(); return; }
+  if(DB.categorias.length<2){ showToast('Crea al menos 2 categorías para poder dividir un gasto'); return; }
+  splitFilas=[{categoria:DB.categorias[0].nombre,monto:0},{categoria:(DB.categorias[1]||DB.categorias[0]).nombre,monto:0}];
+  $('splitTotal').value=''; $('splitDesc').value=''; $('splitFecha').value=hoy();
+  poblarSelectsBanco(); $('splitBanco').value=DB.bancos[0].id;
+  renderSplitFilas(); openSheet('sheetSplit');
+}
+function renderSplitFilas(){
+  $('splitFilas').innerHTML=splitFilas.map((f,i)=>`
+    <div class="split-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px" data-i="${i}">
+      <label class="f" style="flex:1.3;margin:0"><span>Categoría</span>
+        <select class="inp split-cat" data-i="${i}">${DB.categorias.map(c=>`<option value="${esc(c.nombre)}" ${c.nombre===f.categoria?'selected':''}>${c.icono} ${esc(c.nombre)}</option>`).join('')}</select></label>
+      <label class="f" style="flex:1;margin:0"><span>Monto</span>
+        <input class="inp num split-monto" data-i="${i}" type="number" step="0.01" min="0" inputmode="decimal" value="${f.monto||''}"></label>
+      ${splitFilas.length>2?`<button type="button" class="btn danger split-del" data-i="${i}" style="width:42px;padding:13px 0;margin:0">✕</button>`:''}
+    </div>`).join('');
+  actualizarSplitResumen();
+}
+function actualizarSplitResumen(){
+  const total=parseMonto($('splitTotal').value);
+  const asignado=splitFilas.reduce((a,f)=>a+num(f.monto),0);
+  const falta=Math.round((total-asignado)*100)/100;
+  const el=$('splitResumen'); if(!el) return;
+  el.textContent='Total: '+Engine.format(total)+' · asignado: '+Engine.format(asignado)+' · '+
+    (total<=0?'escribe el monto total':falta===0?'listo para guardar':falta>0?'falta '+Engine.format(falta):'te pasaste por '+Engine.format(-falta));
+  el.style.color = (falta===0 && total>0) ? 'var(--teal)' : 'var(--coral)';
+}
+function guardarSplit(e){
+  e.preventDefault();
+  const total=parseMonto($('splitTotal').value), bancoId=$('splitBanco').value,
+        fecha=$('splitFecha').value, desc=$('splitDesc').value.trim();
+  const asignado=splitFilas.reduce((a,f)=>a+num(f.monto),0);
+  if(total<=0){ showToast('Escribe el monto total'); return; }
+  if(splitFilas.some(f=>num(f.monto)<=0)){ showToast('Cada parte necesita un monto mayor a cero'); return; }
+  if(Math.abs(total-asignado)>0.01){ showToast('Las partes deben sumar el mismo total'); return; }
+  const err=validarSalida(bancoId,total);
+  if(err){ showToast(err); return; }
+  const grupoId=uid();
+  splitFilas.forEach(f=>{
+    postAction('addTx',{tipo:'gasto',monto:Math.round(num(f.monto)*100)/100,bancoId,fecha,categoria:f.categoria,
+      descripcion:(desc||f.categoria)+' (dividido)',grupoId});
+  });
+  closeSheet('sheetSplit'); showToast('Gasto dividido en '+splitFilas.length+' categorías'); hap(16);
+}
+
 /* ---------- 13. Categorías ---------- */
 function openCatModal(id){
   const c=id?DB.categorias.find(x=>x.id===id):null;
@@ -2183,25 +2526,55 @@ async function eliminarCategoria(id){
 }
 
 /* ---------- 14. Metas ---------- */
+/* Proyecta cuándo se completa un plan de ahorro según su aporte mensual declarado.
+   No usa el redondeo ni el aparte automático de ingresos para el cálculo (son variables,
+   no un monto fijo mensual), así que el resultado es una estimación conservadora. */
+function proyeccionMeta(m){
+  const falta=Math.max(0,num(m.objetivo)-num(m.actual));
+  if(falta<=0) return {completa:true};
+  const aporte=num(m.aporte);
+  if(aporte<=0) return {meses:null};
+  const meses=Math.max(1,Math.ceil(falta/aporte));
+  const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+meses);
+  return {meses, texto:'en '+nombreMes(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))};
+}
 function renderPlanPresets(sel){
   $('metaPresets').innerHTML=PRESET_METAS.map(([i,n])=>
     `<button type="button" data-i="${i}" data-n="${n}" class="${i===sel?'on':''}"><em>${i}</em>${n}</button>`).join('');
 }
 function nuevaMetaAhorro(){
+  $('metaId').value='';
+  $('metaFormTitle').textContent='Nuevo plan de ahorro';
+  $('metaSubmit').textContent='Crear plan';
   $('metaNombre').value=''; $('metaObjetivo').value=''; $('metaAporte').value='';
+  $('metaRedondeo').checked=false; $('metaAparte').value='';
   renderPlanPresets('🎯'); openSheet('sheetMeta');
+}
+function editarMetaAhorro(id){
+  const m=DB.metas.find(x=>x.id===id); if(!m) return;
+  $('metaId').value=m.id;
+  $('metaFormTitle').textContent='Editar '+m.nombre;
+  $('metaSubmit').textContent='Guardar cambios';
+  $('metaNombre').value=m.nombre; $('metaObjetivo').value=num(m.objetivo); $('metaAporte').value=num(m.aporte)||'';
+  $('metaRedondeo').checked=!!m.redondeo; $('metaAparte').value=num(m.aparteIngresoPct)||'';
+  renderPlanPresets(m.icono); openSheet('sheetMeta');
 }
 function selPlanPreset(icono,nombre){
   document.querySelectorAll('#metaPresets button').forEach(b=>b.classList.toggle('on',b.dataset.i===icono));
-  if(!$('metaNombre').value) $('metaNombre').value=nombre;
+  if(!$('metaId').value && !$('metaNombre').value) $('metaNombre').value=nombre;
 }
 function guardarMetaAhorro(e){
   e.preventDefault();
   const objetivo=parseMonto($('metaObjetivo').value);
   if(objetivo<=0){ showToast('Define un objetivo mayor a cero'); return; }
-  postAction('addMeta',{nombre:$('metaNombre').value.trim(),objetivo,aporte:parseMonto($('metaAporte').value),
-    icono:pick('#metaPresets .on','i','🎯')});
-  closeSheet('sheetMeta'); showToast('Plan creado');
+  const id=$('metaId').value;
+  const p={nombre:$('metaNombre').value.trim(),objetivo,aporte:parseMonto($('metaAporte').value),
+    icono:pick('#metaPresets .on','i','🎯'),
+    redondeo:$('metaRedondeo').checked,
+    aparteIngresoPct:clamp(parseMonto($('metaAparte').value),0,100)};
+  if(id){ p.id=id; postAction('editMeta',p); showToast('Plan actualizado'); }
+  else{ postAction('addMeta',p); showToast('Plan creado'); }
+  closeSheet('sheetMeta');
 }
 function renderMetas(){
   const destinos=[$('metasList'),$('metasDash')].filter(Boolean);
@@ -2213,11 +2586,18 @@ function renderMetas(){
     const pct=clamp(num(m.actual)/num(m.objetivo)*100,0,100);
     const listo=pct>=100;
     const falta=Math.max(0,num(m.objetivo)-num(m.actual));
-    const meses=num(m.aporte)>0?Math.ceil(falta/num(m.aporte)):null;
+    const proy=proyeccionMeta(m);
+    const meses=proy.meses;
     const ayuda='Llevas '+Engine.format(m.actual)+' de '+Engine.format(m.objetivo)+' ('+Math.round(pct)+'%). '+
       (listo?'Meta cumplida: puedes retirar el dinero a la cuenta que quieras.':
-       'Te faltan '+Engine.format(falta)+'.'+(meses?' Con tu aporte de '+Engine.format(m.aporte)+' al mes lo logras en unos '+meses+' mes(es).':' Define un aporte mensual para estimar cuándo lo lograrás.'))+
+       'Te faltan '+Engine.format(falta)+'.'+(meses?' Con tu aporte de '+Engine.format(m.aporte)+' al mes lo logras en unos '+meses+' mes(es), hacia '+proy.texto+'.':' Define un aporte mensual para estimar cuándo lo lograrás.'))+
+      (m.redondeo?'<br><br>Cada gasto que registres redondea hacia arriba y la diferencia se abona sola aquí.':'')+
+      (num(m.aparteIngresoPct)>0?'<br><br>Cada ingreso que registres aparta automáticamente el '+m.aparteIngresoPct+'% hacia este plan.':'')+
       '<br><br>Abonar descuenta de la cuenta que elijas. Retirar devuelve el dinero a la cuenta que indiques. Si eliminas el plan, Nébula te pregunta a dónde va lo acumulado.';
+    const proyTxt = listo ? '🎉 Meta cumplida'
+      : proy.meses ? '📅 A este ritmo, la completas '+proy.texto+' (~'+proy.meses+' mes'+(proy.meses===1?'':'es')+')'
+      : 'Define un aporte mensual para ver cuándo la completas';
+    const badges=[m.redondeo?'🔄 redondeo':'',num(m.aparteIngresoPct)>0?'💧 '+m.aparteIngresoPct+'% de ingresos':''].filter(Boolean).join(' · ');
     return `<div class="goal">
       <div class="hd"><span class="e">${m.icono}</span>
         <div style="flex:1;min-width:0"><b>${esc(m.nombre)}</b>
@@ -2225,9 +2605,12 @@ function renderMetas(){
         <b class="num" style="color:${listo?'var(--teal)':'var(--violet)'}">${Math.round(pct)}%</b>
         <button class="hint" ${hintAttr('Plan: '+m.nombre,ayuda)}>?</button></div>
       <div class="bar"><i style="width:${pct}%;background:${listo?'var(--teal)':'linear-gradient(90deg,var(--violet),var(--sky))'}"></i></div>
+      <div class="muted" style="margin-top:7px;font-size:11.5px">${proyTxt}</div>
+      ${badges?`<div class="muted" style="margin-top:2px;font-size:11px;color:var(--violet)">${badges}</div>`:''}
       <div class="acts">
         <button class="p" data-abonar="${m.id}">Abonar</button>
         <button data-retirar="${m.id}">Retirar</button>
+        <button data-editmeta="${m.id}" style="flex:0 0 42px">✏️</button>
         <button data-delmeta="${m.id}" style="flex:0 0 42px">🗑</button>
       </div></div>`;
   }).join('');
@@ -2555,6 +2938,35 @@ function renderHistory(){
     </div>`;
   }).join('');
 }
+/* ---------- Mapa de calor de gasto por día ---------- */
+function renderHeatmap(){
+  const cont=$('heatGrid'); if(!cont) return;
+  const dias=diasEnMes(mesSel);
+  const porDia=new Array(dias+1).fill(0);
+  Engine.txMes(mesSel).forEach(t=>{
+    if(t.tipo!=='gasto'||Engine.esGastoTC(t)) return;
+    const d=Number((t.fecha||'').slice(8,10)); if(d>=1&&d<=dias) porDia[d]+=num(t.monto);
+  });
+  const mx=Math.max(1,...porDia);
+  const hoyStr=hoy();
+  let html='';
+  for(let d=1;d<=dias;d++){
+    const v=porDia[d], intensidad=v/mx;
+    const fecha=mesSel+'-'+String(d).padStart(2,'0');
+    const esHoy=fecha===hoyStr;
+    const bg = v<=0 ? 'var(--surface-2)' : `color-mix(in srgb, var(--coral) ${Math.round(15+intensidad*80)}%, var(--surface-2))`;
+    html+=`<button type="button" class="pop" data-heatday="${fecha}" style="aspect-ratio:1;border-radius:9px;background:${bg};
+      border:1px solid ${esHoy?'var(--violet)':'transparent'};display:grid;place-items:center;font-size:10px;font-weight:700;
+      color:${intensidad>0.55?'#fff':'var(--text-2)'}">${d}</button>`;
+  }
+  cont.innerHTML=html;
+}
+function abrirDetalleDia(fecha){
+  const arr=DB.transacciones.filter(t=>t.fecha===fecha&&t.tipo==='gasto'&&!Engine.esGastoTC(t));
+  const total=arr.reduce((a,t)=>a+num(t.monto),0);
+  abrirDetalle(fechaLarga(fecha), arr.length+' gasto(s) · '+Engine.format(total), listaDetalle(arr,'Sin gastos este día.'));
+}
+
 /* ---------- Comparación de gastos ---------- */
 let compDias=30;
 function fechaMenos(f,n){
@@ -2834,14 +3246,32 @@ async function mostrarNotificacion(titulo,cuerpo){
     try{ NebulaNativo.mostrarNotificacion(titulo,cuerpo); return true; }catch(e){ return false; }
   }
   if(!notifSoportadas()||Notification.permission!=='granted') return false;
-  try{
-    const reg=swReg||('serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null);
-    if(reg&&reg.showNotification){
+  // Con un service worker activo (como el nuestro), Chrome/Android EXIGE mostrar
+  // la notificación vía reg.showNotification() -- "new Notification()" directo
+  // truena con un error ahí, y antes eso hacía que el aviso cayera solo al
+  // banner de dentro de la app. navigator.serviceWorker.ready espera a que el
+  // worker esté de verdad activo antes de intentarlo, en vez de asumirlo.
+  let reg=null;
+  if('serviceWorker' in navigator){
+    try{ reg = swReg || await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(res=>setTimeout(()=>res(null),2500))
+    ]); }catch(e){}
+    if(!reg){ try{ reg = await navigator.serviceWorker.getRegistration(); }catch(e){} }
+  }
+  if(reg&&reg.showNotification){
+    try{
       await reg.showNotification(titulo,{body:cuerpo,tag:'nebula-'+Date.now(),renotify:true,vibrate:[60,40,60],
         icon:'icon-192.png',badge:'icon-192.png'});
       return true;
-    }
-  }catch(e){}
+    }catch(e){}
+  }
+  if('serviceWorker' in navigator && (await navigator.serviceWorker.getRegistration().catch(()=>null))){
+    // Hay un SW registrado pero showNotification falló: "new Notification()" va
+    // a tronar seguro en este caso, así que ni se intenta -- se deja que
+    // pushNotify muestre el banner dentro de la app como respaldo honesto.
+    return false;
+  }
   try{ new Notification(titulo,{body:cuerpo,icon:'icon-192.png'}); return true; }catch(e){ return false; }
 }
 function renderNotifEstado(){
@@ -3182,6 +3612,7 @@ function openAdminPanel(){
   $('stObs').textContent=DB.obligaciones.length;
   $('stMetas').textContent=DB.metas.length;
   renderRespaldoEstado();
+  renderPinEstado();
   openSheet('sheetAdmin');
 }
 function marcaTiempo(){
@@ -3291,7 +3722,7 @@ function renderAll(){
   actualizarSelectorMeses();
   renderBancos();
   renderDashboard();
-  buildFilters(); renderBankFilters(); renderHistory(); renderComparativa(); renderHistorialMeses();
+  buildFilters(); renderBankFilters(); renderHistory(); renderComparativa(); renderHistorialMeses(); renderHeatmap();
   renderPresupuesto(); renderMetas();
   poblarSelectsBanco(); updateBell();
 }
@@ -3319,6 +3750,7 @@ function wire(){
       if(a==='quick') openQuickModal();
       else if(a==='transfer') openTransferBancoModal();
       else if(a==='captura') openCaptureModal();
+      else if(a==='dividir') abrirSplitModal();
       else if(a==='banco') openBancoModal();
       else if(a==='oblig') openObModal();
       else if(a==='ahorro'){ if(!DB.metas.length){ showToast('Crea primero un plan de ahorro'); nuevaMetaAhorro(); } else openModal('ahorro'); }
@@ -3354,11 +3786,18 @@ function wire(){
   // Transacciones
   $('txForm').onsubmit=guardarTransaccion;
   $('txDelete').onclick=()=>eliminarTx($('txId').value);
+  $('txFoto').onchange=async e=>{
+    const f=e.target.files[0]; if(!f) return;
+    try{ txFotoData=await leerFotoComprimida(f); mostrarFotoPreview(); }
+    catch(err){ showToast('No se pudo leer esa foto'); }
+  };
+  $('txFotoQuitar').onclick=()=>{ txFotoData=null; $('txFoto').value=''; mostrarFotoPreview(); };
   $('txList').onclick=e=>{ const r=e.target.closest('[data-tx]'); if(r) editarTx(r.dataset.tx); };
 
   // Registro rápido
   $('numpad').onclick=e=>{ const b=e.target.closest('[data-k]'); if(b) qNumTap(b.dataset.k); };
   $('qSave').onclick=guardarQuickGasto;
+  $('btnQuickVoz').onclick=dictarGastoRapido;
   $('qBancoChips').onclick=e=>{ const b=e.target.closest('[data-qb]'); if(!b) return;
     if(b.dataset.qb==='__new'){ closeSheet('sheetQuick'); return openBancoModal(); }
     qBanco=b.dataset.qb; renderQBancoChips(); hap(); };
@@ -3373,6 +3812,29 @@ function wire(){
     const [desc,v]=d[Number(b.dataset.q)];
     quickGasto(desc,v.monto,v.cat,v.banco);
   };
+
+  // Gasto dividido
+  $('splitForm').onsubmit=guardarSplit;
+  $('splitAgregar').onclick=()=>{
+    if(splitFilas.length>=DB.categorias.length){ showToast('Ya no hay más categorías para agregar'); return; }
+    const usadas=splitFilas.map(f=>f.categoria);
+    const libre=DB.categorias.find(c=>!usadas.includes(c.nombre))||DB.categorias[0];
+    splitFilas.push({categoria:libre.nombre,monto:0}); renderSplitFilas();
+  };
+  $('splitFilas').addEventListener('click',e=>{
+    const b=e.target.closest('.split-del'); if(!b) return;
+    splitFilas.splice(Number(b.dataset.i),1); renderSplitFilas();
+  });
+  $('splitFilas').addEventListener('change',e=>{
+    const sel=e.target.closest('.split-cat'); if(!sel) return;
+    splitFilas[Number(sel.dataset.i)].categoria=sel.value;
+  });
+  $('splitFilas').addEventListener('input',e=>{
+    const inp=e.target.closest('.split-monto'); if(!inp) return;
+    splitFilas[Number(inp.dataset.i)].monto=parseMonto(inp.value);
+    actualizarSplitResumen();
+  });
+  $('splitTotal').addEventListener('input',actualizarSplitResumen);
 
   // Captura
   $('capAnalizar').onclick=analizarNotificacion;
@@ -3412,9 +3874,11 @@ function wire(){
   $('metaForm').onsubmit=guardarMetaAhorro;
   $('metaPresets').onclick=e=>{ const b=e.target.closest('[data-i]'); if(b) selPlanPreset(b.dataset.i,b.dataset.n); };
   const clickMeta=e=>{
-    const a=e.target.closest('[data-abonar]'), r=e.target.closest('[data-retirar]'), d=e.target.closest('[data-delmeta]');
+    const a=e.target.closest('[data-abonar]'), r=e.target.closest('[data-retirar]'),
+          ed=e.target.closest('[data-editmeta]'), d=e.target.closest('[data-delmeta]');
     if(a) abonarAhorro(a.dataset.abonar);
     else if(r) abrirRetiroAhorro(r.dataset.retirar);
+    else if(ed) editarMetaAhorro(ed.dataset.editmeta);
     else if(d) eliminarMeta(d.dataset.delmeta);
   };
   $('metasList').onclick=clickMeta;
@@ -3448,6 +3912,7 @@ function wire(){
   $('filterChips').onclick=e=>{ const b=e.target.closest('[data-f]'); if(b) setFilter(b.dataset.f); };
   $('bankFilterChips').onclick=e=>{ const b=e.target.closest('[data-bf]'); if(!b) return; bancoFiltro=b.dataset.bf; renderBankFilters(); renderHistory(); hap(); };
   $('searchTx').oninput=e=>{ busqueda=e.target.value.trim(); renderHistory(); };
+  $('heatGrid').onclick=e=>{ const b=e.target.closest('[data-heatday]'); if(b) abrirDetalleDia(b.dataset.heatday); };
   $('compSeg').onclick=e=>{ const b=e.target.closest('[data-d]'); if(b) setComparativa(b.dataset.d); };
   $('compPanel').onclick=e=>{ const g=e.target.closest('[data-g]'); if(g) abrirDetalleTramo(Number(g.dataset.g),g.dataset.tc==='1'); };
   $('periodoSeg').onclick=e=>{ const b=e.target.closest('[data-p]'); if(b) setPeriodo(b.dataset.p); };
@@ -3478,6 +3943,13 @@ function wire(){
   $('btnWipe').onclick=limpiarTodo;
   $('confirmOk').onclick=()=>resolverConfirm(true);
 
+  // Seguridad (PIN)
+  $('pinToggle').onclick=e=>{ e.preventDefault(); onPinToggle(); };
+  $('btnPinCambiar').onclick=cambiarPin;
+  $('pinSetForm').onsubmit=guardarPinNuevo;
+  $('pinConfirmForm').onsubmit=verificarPinConfirm;
+  $('lockForm').onsubmit=verificarLockPin;
+
   // Bienvenida
   $('wcCats').onclick=()=>{
     CATS_BASE.forEach(([n,i])=>localAddCategoria({nombre:n,icono:i,limite:0}));
@@ -3492,6 +3964,109 @@ function wire(){
     const g=s.querySelector('.grab'); if(g) g.onclick=()=>closeSheet(s.id);
   });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&pila.length) closeSheet(pila[pila.length-1]); });
+}
+
+/* ---------- 22. Seguridad: bloqueo con PIN ---------- */
+async function hashPin(pin){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('nebula-finanzas:'+pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function pinCfg(){
+  DB.config.pin=Object.assign({activo:false,hash:null},DB.config.pin||{});
+  return DB.config.pin;
+}
+function renderPinEstado(){
+  const cfg=pinCfg(), activo=!!cfg.activo;
+  $('pinToggle').checked=activo;
+  $('pinToggleTrack').style.background = activo?'var(--violet)':'var(--surface-2)';
+  $('pinToggleKnob').style.transform = activo?'translateX(20px)':'translateX(0)';
+  $('pinEstado').textContent = activo
+    ? 'Activado: te voy a pedir el PIN cada vez que abras la app.'
+    : 'Desactivado: cualquiera que tome tu teléfono desbloqueado puede ver tus finanzas.';
+  $('btnPinCambiar').classList.toggle('hide',!activo);
+}
+async function onPinToggle(){
+  const cfg=pinCfg();
+  if(!cfg.activo){
+    $('pinSetTitle').textContent='Crea tu PIN';
+    $('pinNuevo').value=''; $('pinConfirma').value='';
+    openSheet('sheetPinSet');
+  }else{
+    const ok=await pedirPinActual('Para desactivar el bloqueo, escribe tu PIN actual.');
+    if(ok){ DB.config.pin={activo:false,hash:null}; saveDB(); showToast('Bloqueo con PIN desactivado'); }
+  }
+  renderPinEstado();
+}
+async function cambiarPin(){
+  const ok=await pedirPinActual('Escribe tu PIN actual para cambiarlo.');
+  if(!ok) return;
+  $('pinSetTitle').textContent='Nuevo PIN';
+  $('pinNuevo').value=''; $('pinConfirma').value='';
+  openSheet('sheetPinSet');
+}
+async function guardarPinNuevo(e){
+  e.preventDefault();
+  const p1=$('pinNuevo').value, p2=$('pinConfirma').value;
+  if(!/^\d{4,6}$/.test(p1)){ showToast('El PIN debe tener entre 4 y 6 números'); return; }
+  if(p1!==p2){ showToast('Los dos PIN no coinciden'); return; }
+  const hash=await hashPin(p1);
+  DB.config.pin={activo:true,hash}; saveDB();
+  $('pinNuevo').value=''; $('pinConfirma').value='';
+  closeSheet('sheetPinSet'); renderPinEstado(); showToast('PIN guardado'); hap(16);
+}
+let _pinConfirmResolve=null;
+function pedirPinActual(msg){
+  return new Promise(res=>{
+    _pinConfirmResolve=res;
+    $('pinConfirmMsg').textContent=msg||'Escribe tu PIN actual para continuar.';
+    $('pinConfirmInput').value=''; $('pinConfirmError').textContent='';
+    openSheet('sheetPinConfirm');
+    setTimeout(()=>$('pinConfirmInput').focus(),300);
+  });
+}
+async function verificarPinConfirm(e){
+  e.preventDefault();
+  const hash=await hashPin($('pinConfirmInput').value);
+  if(DB.config.pin && hash===DB.config.pin.hash){
+    const r=_pinConfirmResolve; _pinConfirmResolve=null;
+    closeSheet('sheetPinConfirm'); if(r) r(true);
+  }else{
+    $('pinConfirmError').textContent='PIN incorrecto';
+    $('pinConfirmInput').value=''; hap(30);
+  }
+}
+function mostrarLockScreen(){
+  $('boot').classList.add('gone');
+  $('lockScreen').classList.remove('hide');
+  setTimeout(()=>{ const el=$('lockPin'); if(el) el.focus(); },300);
+}
+async function verificarLockPin(e){
+  e.preventDefault();
+  const hash=await hashPin($('lockPin').value);
+  if(DB.config.pin && hash===DB.config.pin.hash){
+    $('lockScreen').classList.add('hide');
+    $('lockPin').value=''; $('lockError').textContent='';
+    arrancarContenido();
+  }else{
+    $('lockError').textContent='PIN incorrecto, intenta de nuevo';
+    $('lockPin').value=''; $('lockPin').focus(); hap(30);
+  }
+}
+
+/* Atajos de la app (manifest.json → shortcuts): abren directo la acción pedida
+   desde el ícono de la app en el teléfono, sin pasar primero por el tablero. */
+function aplicarAccionDeAtajo(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const accion=params.get('accion');
+    if(!accion) return;
+    history.replaceState(null,'',location.pathname);
+    setTimeout(()=>{
+      if(accion==='quick') openQuickModal();
+      else if(accion==='ingreso') openModal('ingreso');
+      else if(accion==='gasto') openModal('gasto');
+    },700);
+  }catch(e){}
 }
 
 /* ---------- 21. Arranque ---------- */
@@ -3516,11 +4091,20 @@ function init(){
     b.addEventListener('click',()=>closeSheet(sh.id));
     sh.appendChild(b);
   });
+  renderPinEstado();
+  if(pinCfg().activo) mostrarLockScreen();
+  else arrancarContenido();
+}
+/* Todo lo que toca datos financieros: se pospone hasta después de desbloquear el PIN
+   (si el bloqueo está activo), para que no queden montos visibles en el DOM detrás
+   de la pantalla de bloqueo. */
+function arrancarContenido(){
   renderAll();
   autoReportes(false);
   runAlertEngine();
   setTimeout(revisarRespaldoAutomatico,1500);
   setInterval(runAlertEngine,60000);
+  aplicarAccionDeAtajo();
   setTimeout(()=>{
     $('boot').classList.add('gone');
     if(!DB.config.iniciado && !DB.bancos.length && !DB.transacciones.length) openSheet('sheetWelcome');
