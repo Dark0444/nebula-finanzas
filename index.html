@@ -2837,11 +2837,12 @@ async function mostrarNotificacion(titulo,cuerpo){
   try{
     const reg=swReg||('serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null);
     if(reg&&reg.showNotification){
-      await reg.showNotification(titulo,{body:cuerpo,tag:'nebula-'+Date.now(),renotify:true,vibrate:[60,40,60]});
+      await reg.showNotification(titulo,{body:cuerpo,tag:'nebula-'+Date.now(),renotify:true,vibrate:[60,40,60],
+        icon:'icon-192.png',badge:'icon-192.png'});
       return true;
     }
   }catch(e){}
-  try{ new Notification(titulo,{body:cuerpo}); return true; }catch(e){ return false; }
+  try{ new Notification(titulo,{body:cuerpo,icon:'icon-192.png'}); return true; }catch(e){ return false; }
 }
 function renderNotifEstado(){
   const el=$('notifEstado'), btn=$('btnNotifPerm'); if(!el) return;
