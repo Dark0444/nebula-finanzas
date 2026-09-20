@@ -11,8 +11,8 @@
 <meta name="description" content="Control total de tus finanzas personales: cuentas, presupuestos, tarjeta de crédito, metas y respaldo automático.">
 <title>Nébula Finanzas</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -2821,9 +2821,18 @@ function avisoEnApp(titulo,cuerpo,icono){
   bannerT=setTimeout(()=>b.classList.remove('on'),7000);
   b.onclick=()=>{ b.classList.remove('on'); toggleNotifPanel(); };
 }
-function notifSoportadas(){ return typeof Notification!=='undefined'; }
-function contextoSeguro(){ return location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'; }
+// Si esta página corre dentro del envoltorio nativo de Android (ver NebulaBridge
+// en MainActivity.java), NebulaNativo existe y las notificaciones se muestran
+// directo con el NotificationManager real de Android, sin depender para nada
+// de la API Notification del navegador (que es la parte que fallaba dentro
+// de un WebView normal).
+function nativoDisponible(){ return typeof NebulaNativo!=='undefined' && !!NebulaNativo && !!NebulaNativo.mostrarNotificacion; }
+function notifSoportadas(){ return nativoDisponible() || typeof Notification!=='undefined'; }
+function contextoSeguro(){ return nativoDisponible() || location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'; }
 async function mostrarNotificacion(titulo,cuerpo){
+  if(nativoDisponible()){
+    try{ NebulaNativo.mostrarNotificacion(titulo,cuerpo); return true; }catch(e){ return false; }
+  }
   if(!notifSoportadas()||Notification.permission!=='granted') return false;
   try{
     const reg=swReg||('serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null);
@@ -2836,6 +2845,14 @@ async function mostrarNotificacion(titulo,cuerpo){
 }
 function renderNotifEstado(){
   const el=$('notifEstado'), btn=$('btnNotifPerm'); if(!el) return;
+  if(nativoDisponible()){
+    const ok=NebulaNativo.tienePermiso?NebulaNativo.tienePermiso():true;
+    el.textContent = ok
+      ? 'Instalada como app · las notificaciones salen directo a la barra del teléfono, sin depender del navegador.'
+      : 'Instalada como app, pero falta el permiso de notificaciones. Actívalo en Ajustes del teléfono › Apps › Nébula Finanzas › Notificaciones.';
+    btn.classList.toggle('hide',ok); $('btnNotifTest').classList.remove('hide'); $('btnNotifOpen').classList.add('hide');
+    return;
+  }
   if(!notifSoportadas()){
     el.textContent='Este navegador no permite notificaciones del sistema. Las alertas seguirán llegando a la campana.';
     btn.classList.add('hide'); $('btnNotifTest').classList.add('hide'); return;
@@ -2860,6 +2877,10 @@ function renderNotifEstado(){
   btn.classList.toggle('hide',p==='granted');
   $('btnNotifTest').classList.remove('hide');
 }
+// Expuesta en window a propósito: el envoltorio nativo de Android (MainActivity.java)
+// la llama después de que el usuario responde al diálogo de permiso del sistema,
+// para refrescar este panel al instante sin esperar a que reabras la campana.
+window.renderNotifEstado = renderNotifEstado;
 function abrirFueraDelMarco(){
   let abierta=false;
   try{
@@ -2879,6 +2900,15 @@ async function copiarUrlApp(){
     try{ document.execCommand('copy'); showToast('Dirección copiada'); }catch(e2){ showToast('Mantén pulsado el texto para copiarlo'); } }
 }
 async function askNotifPermission(){
+  if(nativoDisponible()){
+    if(NebulaNativo.tienePermiso && NebulaNativo.tienePermiso()){
+      await mostrarNotificacion('Nébula Finanzas','Listo, aquí te avisaré de tus presupuestos y obligaciones.');
+      showToast('Notificaciones activadas'); renderNotifEstado(); return 'granted';
+    }
+    if(NebulaNativo.abrirAjustes){ NebulaNativo.abrirAjustes(); showToast('Actívalas ahí y vuelve a la app'); }
+    else showToast('Actívalas en Ajustes del teléfono › Apps › Nébula Finanzas › Notificaciones');
+    return 'denied';
+  }
   if(!notifSoportadas()){ showToast('Este navegador no soporta notificaciones'); return 'unsupported'; }
   if(!contextoSeguro()){ showToast('Solo funcionan si abres la app por https'); return 'insecure'; }
   let p=Notification.permission;
