@@ -2379,17 +2379,71 @@ function reconocedorVoz(){
   r.lang='es-GT'; r.interimResults=false; r.maxAlternatives=3;
   return r;
 }
+function normalizarFonetico(s){
+  // Normaliza texto en español para comparar "a oído": quita acentos, quita la
+  // "h" (siempre muda), unifica z/s (seseo, muy común en Guatemala) y colapsa
+  // letras repetidas seguidas. Así "Hindustrial" ~= "Industrial" y
+  // "Lisset" ~= "Lizeth", que es como el reconocimiento de voz suele transcribirlos.
+  return (s||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/h/g,'')
+    .replace(/z/g,'s')
+    .replace(/([a-z])\1+/g,'$1');
+}
+function palabrasClave(nombre){
+  return normalizarFonetico(nombre).split(/[^a-z0-9]+/).filter(Boolean);
+}
+function puntajeParcial(nombre, tTokens){
+  // Qué tan reconocible es "nombre" dentro de las palabras sueltas que sí se
+  // entendieron, aunque no se haya dicho completo (p.ej. "mama li" por "MAMA LISSET").
+  const palabras = palabrasClave(nombre);
+  if(!palabras.length) return 0;
+  let hits=0;
+  palabras.forEach(p=>{
+    const ok = tTokens.some(tw=>{
+      if(tw===p) return true;
+      // Una palabra dicha a medias solo cuenta si ya se pronunció una porción
+      // razonable de ella (al menos la mitad), para no disparar con una sílaba suelta.
+      return p.length>=4 && tw.length>=Math.max(2,Math.ceil(p.length*0.5)) && p.startsWith(tw);
+    });
+    if(ok) hits++;
+  });
+  return hits/palabras.length;
+}
+function mejorCoincidenciaParcial(lista, tTokens){
+  let mejor=null, mejorScore=0, empatado=false;
+  lista.forEach(item=>{
+    const sc=puntajeParcial(item.nombre, tTokens);
+    if(sc>mejorScore){ mejor=item; mejorScore=sc; empatado=false; }
+    else if(sc>0 && sc===mejorScore && item!==mejor){ empatado=true; }
+  });
+  // Si dos cuentas/categorías distintas quedan igual de "reconocibles", mejor no
+  // adivinar: que la persona lo elija a mano en vez de arriesgar el dato equivocado.
+  return (mejorScore>=0.5 && !empatado) ? mejor : null;
+}
 function interpretarDictado(texto){
   const t=(texto||'').toLowerCase();
+  const tFon = normalizarFonetico(t);
   // Monto: primer número con o sin decimales que aparece en el texto.
   const mm=t.match(/(\d+(?:[.,]\d{1,2})?)/);
   const monto = mm ? parseMonto(mm[1]) : 0;
-  // Categoría: la primera categoría existente cuyo nombre aparezca mencionado.
-  const cat = DB.categorias.find(c=>t.includes(c.nombre.toLowerCase()));
-  // Cuenta: la primera cuenta existente cuyo nombre aparezca mencionado.
-  const banco = DB.bancos.find(b=>t.includes(b.nombre.toLowerCase()));
+  // Categoría: 1) coincidencia exacta, 2) coincidencia fonética tolerante
+  // (ver normalizarFonetico), 3) coincidencia por palabras sueltas/parciales
+  // (por si el micrófono no agarró todo, p.ej. "mama li" en vez de "MAMA LISSET").
+  // Funciona igual para cualquier categoría o cuenta que existan, no solo nombres fijos.
+  let cat = DB.categorias.find(c=>t.includes(c.nombre.toLowerCase()));
+  if(!cat) cat = DB.categorias.find(c=>tFon.includes(normalizarFonetico(c.nombre)));
+  // Cuenta: mismas tres etapas.
+  let banco = DB.bancos.find(b=>t.includes(b.nombre.toLowerCase()));
+  if(!banco) banco = DB.bancos.find(b=>tFon.includes(normalizarFonetico(b.nombre)));
+  if(!cat || !banco){
+    const tTokens = tFon.split(/[^a-z0-9]+/).filter(Boolean);
+    if(!cat) cat = mejorCoincidenciaParcial(DB.categorias, tTokens);
+    if(!banco) banco = mejorCoincidenciaParcial(DB.bancos, tTokens);
+  }
   // Descripción: el texto tal cual, para que quede algo de contexto guardado.
-  return {monto, cat:cat?cat.nombre:null, bancoId:banco?banco.id:null, texto};
+  return {monto, cat:cat?cat.nombre:null, bancoId:banco?banco.id:null, bancoNombre:banco?banco.nombre:null, texto};
 }
 function dictarGastoRapido(){
   const rec=reconocedorVoz();
@@ -2402,7 +2456,13 @@ function dictarGastoRapido(){
     if(r.monto>0){ qMonto=String(r.monto); renderQuickAmount(); }
     if(r.cat){ qCat=r.cat; renderQCatChips(); }
     if(r.bancoId){ qBanco=r.bancoId; renderQBancoChips(); }
-    showToast(r.monto>0 ? 'Escuché: "'+texto+'" · revisa y guarda' : 'No entendí el monto, escríbelo manualmente');
+    if(r.monto>0){
+      const cuentaTxt = r.bancoId ? ('cuenta "'+r.bancoNombre+'" ✓') : 'cuenta: no la reconocí';
+      const catTxt = r.cat ? ('categoría "'+r.cat+'" ✓') : 'categoría: no la reconocí';
+      showToast('Escuché "'+texto+'" → '+cuentaTxt+' · '+catTxt+' · revisa antes de guardar');
+    } else {
+      showToast('No entendí el monto, escríbelo manualmente');
+    }
   };
   rec.onerror=()=>{ showToast('No se pudo escuchar. Intenta de nuevo.'); };
   rec.onend=()=>{ btn.textContent='🎤'; btn.disabled=false; };
